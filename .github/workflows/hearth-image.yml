@@ -5,7 +5,7 @@
 # pinned components, and publishes it to GHCR:
 #
 #   ghcr.io/<owner>/hearth-office:<tag>      (the tag given, or the commit)
-#   ghcr.io/<owner>/hearth-office:latest     (builds of main)
+#   ghcr.io/<owner>/hearth-office:latest     (builds of the hearth branch)
 #
 # It is upstream's own image build (build/docker-bake.hcl, target
 # "standalone": sdkjs, web-apps, server, the example host, the package and
@@ -31,7 +31,7 @@ on:
         options: [fork, upstream]
         default: fork
   push:
-    branches: [main]
+    branches: [hearth]
 
 permissions: {}
 
@@ -113,7 +113,7 @@ jobs:
           export PRODUCT_VERSION="$(cat ../VERSION)"
           sudo mkdir -p "$CACHE_ROOT" && sudo chown "$(id -u)" "$CACHE_ROOT"
           tags=(--set "standalone.tags=$IMAGE:$TAG")
-          if [ "$GITHUB_REF" = refs/heads/main ]; then
+          if [ "$GITHUB_REF" = refs/heads/hearth ]; then
             tags+=(--set "standalone.tags=$IMAGE:latest")
           fi
           docker buildx bake --allow "fs=$CACHE_ROOT" --allow "fs.read=.." \
