@@ -1,36 +1,36 @@
 [submodule "server"]
 	path = server
-	url = https://github.com/Euro-Office/server.git
+	url = ../hearth-office-server.git
 [submodule "web-apps"]
 	path = web-apps
-	url = https://github.com/Euro-Office/web-apps.git
+	url = ../hearth-office-web-apps.git
 [submodule "sdkjs"]
 	path = sdkjs
-	url = https://github.com/Euro-Office/sdkjs.git
+	url = ../hearth-office-sdkjs.git
 [submodule "core-fonts"]
 	path = core-fonts
-	url = https://github.com/Euro-Office/core-fonts.git
+	url = ../hearth-office-core-fonts.git
 [submodule "core"]
 	path = core
-	url = https://github.com/Euro-Office/core.git
+	url = ../hearth-office-core.git
 [submodule "document-server-integration"]
 	path = document-server-integration
-	url = https://github.com/Euro-Office/document-server-integration.git
+	url = ../hearth-office-document-server-integration.git
 [submodule "dictionaries"]
 	path = dictionaries
-	url = https://github.com/Euro-Office/dictionaries.git
+	url = ../hearth-office-dictionaries.git
 	branch = main
 [submodule "document-templates"]
 	path = document-templates
-	url = https://github.com/Euro-Office/document-templates.git
+	url = ../hearth-office-document-templates.git
 	branch = main
 [submodule "document-server-package"]
 	path = document-server-package
-	url = https://github.com/Euro-Office/document-server-package.git
+	url = ../hearth-office-document-server-package.git
 [submodule "sdkjs-forms"]
 	path = sdkjs-forms
-	url = https://github.com/Euro-Office/sdkjs-forms.git
+	url = ../hearth-office-sdkjs-forms.git
 [submodule "document-formats"]
 	path = document-formats
-	url = https://github.com/Euro-Office/document-formats.git
+	url = ../hearth-office-document-formats.git
 	branch = main

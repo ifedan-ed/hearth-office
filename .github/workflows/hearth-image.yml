@@ -1,0 +1,127 @@
+# SPDX-FileCopyrightText: 2026 Hearth contributors
+# SPDX-License-Identifier: AGPL-3.0-only
+#
+# Builds the Hearth Office Document Server image from this repository and its
+# pinned components, and publishes it to GHCR:
+#
+#   ghcr.io/<owner>/hearth-office:<tag>      (the tag given, or the commit)
+#   ghcr.io/<owner>/hearth-office:latest     (builds of main)
+#
+# It is upstream's own image build (build/docker-bake.hcl, target
+# "standalone": sdkjs, web-apps, server, the example host, the package and
+# the final image), run on a GitHub hosted runner. The C++ core is not
+# compiled in this job: the "Hearth core" workflow in the hearth-office-core
+# repository builds it and publishes the output keyed by the core source
+# tree; this job names that output as a build context. If it is missing, the
+# job stops and says which workflow to run. There is no fallback to
+# upstream's published core unless core_source is set to "upstream" by hand.
+
+name: Hearth Office image
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Image tag (default is the short commit)
+        required: false
+        default: ''
+      core_source:
+        description: Where the core build output comes from
+        type: choice
+        options: [fork, upstream]
+        default: fork
+  push:
+    branches: [main]
+
+permissions: {}
+
+concurrency:
+  group: hearth-image-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  image:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      # The runner starts with about 14 GB free on /; the build needs more.
+      # The toolchains it does not need give back roughly 25 GB, and the
+      # layer cache goes to /mnt, the runner's second disk.
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          df -h / /mnt
+
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      - name: Names, tags and the core build to use
+        id: meta
+        env:
+          TAG_INPUT: ${{ inputs.tag }}
+          CORE_SOURCE: ${{ inputs.core_source || 'fork' }}
+        run: |
+          set -euo pipefail
+          owner=$(echo "$GITHUB_REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')
+          image="ghcr.io/$owner/hearth-office"
+          tag="${TAG_INPUT:-$(git rev-parse --short HEAD)}"
+          tree=$(git -C core rev-parse 'HEAD^{tree}')
+          echo "image=$image" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          commits="hearth-office=$(git rev-parse --short HEAD) $(git submodule foreach --quiet 'echo $name=$(git rev-parse --short HEAD)' | tr '\n' ' ')"
+          echo "commits=$commits" >> "$GITHUB_OUTPUT"
+          if [ "$CORE_SOURCE" = upstream ]; then
+            # Upstream's CI publishes the output of its own core commits; this
+            # only finds one when the pinned core has no Hearth change.
+            cd build
+            export EO_CORE_CACHE=require
+            echo "core=$(./fetch-core.sh --channels main)" >> "$GITHUB_OUTPUT"
+            echo "wasm=$(./fetch-core-wasm.sh --channels main)" >> "$GITHUB_OUTPUT"
+          else
+            for name in core core-wasm; do
+              if ! docker manifest inspect "$image-$name:$tree" >/dev/null 2>&1; then
+                echo "::error::$image-$name:$tree is not published. Run the \"Hearth core\" workflow in $GITHUB_REPOSITORY_OWNER/hearth-office-core for the pinned core commit first."
+                exit 1
+              fi
+            done
+            echo "core=docker-image://$image-core:$tree" >> "$GITHUB_OUTPUT"
+            echo "wasm=docker-image://$image-core-wasm:$tree" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build and push the image
+        working-directory: build
+        env:
+          CORE_PREBUILT: ${{ steps.meta.outputs.core }}
+          CORE_WASM_PREBUILT: ${{ steps.meta.outputs.wasm }}
+          BUILD_COMMITS: ${{ steps.meta.outputs.commits }}
+          BUILD_NUMBER: hearth.${{ github.run_number }}
+          IMAGE: ${{ steps.meta.outputs.image }}
+          TAG: ${{ steps.meta.outputs.tag }}
+          CACHE_ROOT: /mnt/hearth-bake-cache
+        run: |
+          set -euo pipefail
+          export PRODUCT_VERSION="$(cat ../VERSION)"
+          sudo mkdir -p "$CACHE_ROOT" && sudo chown "$(id -u)" "$CACHE_ROOT"
+          tags=(--set "standalone.tags=$IMAGE:$TAG")
+          if [ "$GITHUB_REF" = refs/heads/main ]; then
+            tags+=(--set "standalone.tags=$IMAGE:latest")
+          fi
+          docker buildx bake --allow "fs=$CACHE_ROOT" --allow "fs.read=.." \
+            "${tags[@]}" \
+            --set "standalone.labels.org.opencontainers.image.source=https://github.com/$GITHUB_REPOSITORY" \
+            --set "standalone.labels.org.opencontainers.image.revision=$GITHUB_SHA" \
+            --set "standalone.labels.org.opencontainers.image.licenses=AGPL-3.0-only" \
+            --set "standalone.output=type=registry" \
+            standalone
+          echo "### Published \`$IMAGE:$TAG\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "Built from: $BUILD_COMMITS" >> "$GITHUB_STEP_SUMMARY"

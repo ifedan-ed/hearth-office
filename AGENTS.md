@@ -1,3 +1,56 @@
+# Hearth Office: working rules
+
+Read this before changing anything. CLAUDE.md points here. Upstream's own
+guidance for this repository follows below, unchanged, under "Upstream
+guidance (Euro-Office)"; where the two disagree, the Hearth rules win, except
+that upstream's licence and attribution rules always hold.
+
+## What this is
+
+Hearth Office is the office suite of Hearth, a self-hosted cloud platform. It
+is a fork of Euro-Office (github.com/Euro-Office), itself a fork of ONLYOFFICE
+Docs. This repository is the fork of Euro-Office/DocumentServer: the umbrella
+that pins every component as a submodule and holds the image build. Each
+component is its own fork, named hearth-office-NAME beside this repository,
+with Hearth's line of work on its `hearth` branch.
+
+## Standards (every change)
+
+1. Comment the code: every package, type and non-obvious function says what
+   it is for and why it is shaped that way.
+2. Quality: small pieces with one job, clear names, errors handled where
+   they can be acted on, no dead code, no copy-paste.
+3. Speed: measure before and after; keep pages light and requests few.
+4. Improvement: leave each area better than you found it.
+
+## Rules
+
+- Keep the fork small. Prefer, in this order: a setting, a plugin, a new file
+  beside upstream's, and only then an edit to an upstream file. Every edit to
+  an upstream file is listed in README.md with its reason, so it can be
+  carried across upstream merges or dropped when upstream catches up.
+- Licence: the code is AGPL-3.0. Keep every upstream copyright, licence and
+  attribution notice as it is. New Hearth files carry an SPDX header
+  (`SPDX-FileCopyrightText: 2026 Hearth contributors`,
+  `SPDX-License-Identifier: AGPL-3.0-only`).
+- Compiling happens on GitHub Actions (the hearth-*.yml workflows), never on
+  a shared server.
+- Model calls from any plugin go through the Document Server's own proxy to
+  the model gateway the deployment names, never straight to a provider. Keys
+  are never printed or committed.
+- One explicit setting per thing; no hidden fallbacks or guessed defaults.
+- A change is done only after a real end-to-end run; mark anything untested
+  plainly.
+- README.md is kept up to date in the same commit as every change: what the
+  fork is, how it is built, how to run it, the add-ins and the current state.
+- Nothing private in this repository outside private/ (notes about one
+  installation, test records, screenshots of anyone's documents). private/
+  is left out of the public copy by hearth/export-public.sh; the component
+  repositories have no private folder, so nothing private goes there at all.
+- Never open issues or pull requests on upstream's repositories on your own.
+
+# Upstream guidance (Euro-Office)
+
 ## What this repo is
 
 DocumentServer is the master orchestrator for the Euro-Office ecosystem. It manages all submodules, docker orchestration, and workspace-level build configurations.
