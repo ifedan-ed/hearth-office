@@ -36,3 +36,6 @@ build/packages
 
 # Prebuilt core, its own bake context
 build/core-prebuilt
+
+# Hearth: the plugins repository is its own build context (hearth/docker-bake.hcl)
+plugins

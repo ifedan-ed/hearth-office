@@ -17,21 +17,40 @@ component as a submodule and builds the Document Server image.
 
 As of 2026-11-24:
 
-- The fork holds upstream's code unchanged, at the commits between release
-  v9.3.8 and upstream's main of 2026-11-23, plus the build workflows below.
-  No source file of any component is changed yet.
-- The first builds on GitHub Actions are running. Until one has finished
-  and been tested, the image to use is upstream's
-  `ghcr.io/euro-office/documentserver:v9.3.8`.
-- Tested against upstream's image through WOPI: open, edit, save, co-editing
-  with two browsers, versions kept by the host, conversion to PDF; a colour
-  theme set by a settings file; a plugin that adds a toolbar tab and a side
-  panel and inserts text at the cursor; the AI plugin answering through the
-  server's own proxy.
+- The fork holds upstream's code at the commits between release v9.3.8 and
+  upstream's main of 2026-11-23, with the changes listed under "What the
+  fork changes": two fixes to the WOPI page, Hearth's AI add-in, and a
+  plugin SDK served by the server itself.
+- GitHub Actions builds all of it: the core (1 h 19 min for the native code,
+  8 minutes for the WebAssembly modules), sdkjs, web-apps, the server and
+  the image, published as `ghcr.io/ifedan-ed/hearth-office:<tag>`.
+- The image is tested through WOPI with a small test host and generated
+  test documents: open, edit, save, co-editing with two browsers, versions
+  kept by the host, conversion to PDF; a colour theme named by the host; a
+  plugin that adds a toolbar tab and a side panel and inserts text at the
+  cursor; the AI add-in answering through the server's own proxy.
 
 ## The add-ins
 
-Planned, not built. Both are plugins in plain JavaScript that Hearth owns:
+Plugins in plain JavaScript that Hearth owns, in hearth-office-plugins under
+`sdkjs-plugins/content`, built into the image (`hearth/plugins.txt` names
+which).
+
+Built:
+
+- Hearth Assistant (`hearth-ai`): an Assistant tab and side panel in the
+  document, spreadsheet and presentation editors. It drafts text that fits
+  what is around the cursor, rewrites a selection as a tracked change,
+  summarises a selection or the whole file, explains the formula in a cell
+  from the cells it uses, turns notes into slides on the deck's own layout,
+  and answers questions about the open document. Every request goes through
+  the server's own proxy (`/ai-proxy`) to the provider in the server's
+  settings; the browser holds no key. The model is one setting,
+  `aiSettings.actions.Chat.model`. It is started with
+  `services.CoAuthoring.plugins.autostart` (the plugin's README has the
+  line).
+
+Planned:
 
 - References: a reference manager in its own toolbar tab, with a PubMed
   search, citations stored as Word fields so the file stays a normal .docx,
@@ -39,10 +58,22 @@ Planned, not built. Both are plugins in plain JavaScript that Hearth owns:
 - Dictate: voice typing. Words are inserted at the cursor as they are
   recognised; the audio goes to the Hearth server, never to the browser's
   built-in recogniser.
+- Hearth's name and mark on the editor's loading screen and About box.
 
-Also planned: Hearth's colours and name in the editor, and two small fixes
-to the WOPI page (keep the host's colour theme; report "document loaded"
-when the document is drawn).
+## For a WOPI host
+
+Two things differ from upstream:
+
+- Theme. A host can make a colour theme of its own the default: put the
+  theme's JSON file in the themes folder
+  (`web-apps/apps/common/main/resources/themes`) and send its id as
+  `editorConfig.customization.uiTheme` in the `docs_api_config` form field.
+  Upstream's page discarded that value. The address parameters `thm=1` and
+  `thm=2` still pick the stock light and dark themes.
+- Loading. `App_LoadingStatus` is posted twice: with `Status: "Frame_Ready"`
+  when the editor's shell is up, and with `Status: "Document_Loaded"` and
+  `DocumentLoadedTime` when the document is drawn. Upstream posted
+  `Document_Loaded` at the first moment.
 
 ## Repositories
 
@@ -60,6 +91,7 @@ when the document is drawn).
 | hearth-office-document-formats | document-formats | The list of file types |
 | hearth-office-document-server-package | document-server-package | Packaging scripts |
 | hearth-office-document-server-integration | document-server-integration | The example host used in tests |
+| hearth-office-plugins | plugins | The plugin collection and the plugin SDK; Hearth's add-ins |
 
 Hearth's work is on the `hearth` branch of each repository. Upstream's
 history is kept whole underneath it.
@@ -76,9 +108,18 @@ Nothing is compiled by hand. Two workflows do the work:
    first build can outlast the six hours a hosted runner allows; the compiler
    cache is saved when it does, and running the workflow again finishes it.
 2. `Hearth Office image` here builds sdkjs, web-apps, the server, the example
-   host and the final image with upstream's own bake file
+   host and the Document Server image with upstream's own bake file
    (`build/docker-bake.hcl`, target `standalone`), takes the core output from
-   step 1, and pushes `ghcr.io/<owner>/hearth-office:<tag>`.
+   step 1, adds Hearth's layer (`hearth/docker-bake.hcl`, target `hearth`)
+   and pushes `ghcr.io/<owner>/hearth-office:<tag>`.
+
+The layer (`hearth/Dockerfile`) puts the plugins named in
+`hearth/plugins.txt` and the plugin SDK into the server's `sdkjs-plugins`
+folder. `hearth/install-plugins.sh` does the copying and points every plugin
+page at the SDK the server itself serves (`sdkjs-plugins/v1`) instead of
+https://onlyoffice.github.io, where upstream's pages load it from; it stops
+the build if a page would still load a script or stylesheet from another
+site. To ship another plugin, add its folder name to `hearth/plugins.txt`.
 
 sdkjs, web-apps and server each have a `Hearth build` workflow that checks
 the repository still builds inside the image.
@@ -101,11 +142,17 @@ dropped.
 | --- | --- | --- |
 | hearth-office: `.gitmodules` | Submodule addresses are relative (`../hearth-office-NAME.git`) | Build from the forks |
 | hearth-office: `AGENTS.md` | Hearth's rules above upstream's text | Working rules for the fork |
-| hearth-office: `HEARTH.md`, `hearth/`, `.github/workflows/hearth-image.yml` (new files) | This page, the public-copy script, the image workflow | Hearth's own additions |
+| hearth-office: `hearth/` (new folder) | The public-copy script; the image layer that installs plugins (`Dockerfile`, `docker-bake.hcl`, `install-plugins.sh`, `plugins.txt`) | Hearth's own additions; upstream's image ships no plugins |
+| hearth-office: `.github/workflows/hearth-image.yml` (new file) | The image workflow | Builds on hosted runners |
+| hearth-office: `.gitmodules`, `.dockerignore` | The plugins repository is a submodule at `plugins`, left out of the main build context | The image layer needs it pinned like every other component |
 | core: `.github/workflows/hearth-core.yml` (new file) | Builds and publishes core | Builds on hosted runners |
 | sdkjs, web-apps, server: `.github/workflows/hearth-build.yml` (new file) | Build check | The same |
+| web-apps: `apps/api/wopi/editor-wopi.ejs` | The host's `customization.uiTheme` is kept; `thm=1`/`thm=2` are applied after the merge and only when present | A host could not make its own theme the default: the page overwrote it with undefined. A plain bug, fit to offer upstream |
+| web-apps: the same file | `App_LoadingStatus` says `Frame_Ready` at onAppReady and `Document_Loaded` at onDocumentReady | `Document_Loaded` was sent when the shell was up, seconds before the document was drawn. Fit to offer upstream |
+| plugins: `sdkjs-plugins/content/hearth-ai` (new folder) | Hearth Assistant | The add-in above |
 
-No source file of any component is changed yet.
+No plugin page of upstream's is edited: the SDK address is rewritten on the
+copies that go into the image. core, sdkjs and server carry no source change.
 
 ## Licence
 

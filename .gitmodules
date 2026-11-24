@@ -34,3 +34,6 @@
 	path = document-formats
 	url = ../hearth-office-document-formats.git
 	branch = main
+[submodule "plugins"]
+	path = plugins
+	url = ../hearth-office-plugins.git

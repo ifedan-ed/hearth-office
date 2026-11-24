@@ -9,7 +9,9 @@
 #
 # It is upstream's own image build (build/docker-bake.hcl, target
 # "standalone": sdkjs, web-apps, server, the example host, the package and
-# the final image), run on a GitHub hosted runner. The C++ core is not
+# the final image), with Hearth's layer on top (hearth/docker-bake.hcl, target
+# "hearth": the plugins named in hearth/plugins.txt and the plugin SDK), run
+# on a GitHub hosted runner. The C++ core is not
 # compiled in this job: the "Hearth core" workflow in the hearth-office-core
 # repository builds it and publishes the output keyed by the core source
 # tree; this job names that output as a build context. If it is missing, the
@@ -112,16 +114,19 @@ jobs:
           set -euo pipefail
           export PRODUCT_VERSION="$(cat ../VERSION)"
           sudo mkdir -p "$CACHE_ROOT" && sudo chown "$(id -u)" "$CACHE_ROOT"
-          tags=(--set "standalone.tags=$IMAGE:$TAG")
+          tags=(--set "hearth.tags=$IMAGE:$TAG")
           if [ "$GITHUB_REF" = refs/heads/hearth ]; then
-            tags+=(--set "standalone.tags=$IMAGE:latest")
+            tags+=(--set "hearth.tags=$IMAGE:latest")
           fi
-          docker buildx bake --allow "fs=$CACHE_ROOT" --allow "fs.read=.." \
+          # Two bake files: upstream's, untouched, and Hearth's one target
+          # that builds on its "standalone". Only "hearth" is pushed.
+          docker buildx bake -f docker-bake.hcl -f ../hearth/docker-bake.hcl \
+            --allow "fs=$CACHE_ROOT" --allow "fs.read=.." \
             "${tags[@]}" \
-            --set "standalone.labels.org.opencontainers.image.source=https://github.com/$GITHUB_REPOSITORY" \
-            --set "standalone.labels.org.opencontainers.image.revision=$GITHUB_SHA" \
-            --set "standalone.labels.org.opencontainers.image.licenses=AGPL-3.0-only" \
-            --set "standalone.output=type=registry" \
-            standalone
+            --set "hearth.labels.org.opencontainers.image.source=https://github.com/$GITHUB_REPOSITORY" \
+            --set "hearth.labels.org.opencontainers.image.revision=$GITHUB_SHA" \
+            --set "hearth.labels.org.opencontainers.image.licenses=AGPL-3.0-only" \
+            --set "hearth.output=type=registry" \
+            hearth
           echo "### Published \`$IMAGE:$TAG\`" >> "$GITHUB_STEP_SUMMARY"
           echo "Built from: $BUILD_COMMITS" >> "$GITHUB_STEP_SUMMARY"
