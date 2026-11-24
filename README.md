@@ -20,7 +20,8 @@ As of 2026-11-24:
 - The fork holds upstream's code at the commits between release v9.3.8 and
   upstream's main of 2026-11-23, with the changes listed under "What the
   fork changes": two fixes to the WOPI page and one to theme loading,
-  Hearth's AI add-in, and a plugin SDK served by the server itself.
+  one to the server's view-mode warning, Hearth's AI add-in, and a plugin
+  SDK served by the server itself.
 - GitHub Actions builds all of it: the core (1 h 19 min for the native code,
   8 minutes for the WebAssembly modules), sdkjs, web-apps, the server and
   the image, published as `ghcr.io/ifedan-ed/hearth-office:<tag>`.
@@ -48,13 +49,20 @@ Built:
   settings; the browser holds no key. The model is one setting,
   `aiSettings.actions.Chat.model`. It is started with
   `services.CoAuthoring.plugins.autostart` (the plugin's README has the
-  line).
+  line). A host turns it off with the plugin option `off`.
+- References (`hearth-references`): a References tab in the document
+  editor that cites from the host's reference library and PubMed, keeps
+  the bibliography in the document's citation style (Edit citation,
+  Bibliography, Refresh, Style, Citations), and stores every citation in
+  Zotero's own Word field format (`ADDIN ZOTERO_ITEM CSL_CITATION`,
+  `ADDIN ZOTERO_BIBL`, the `ZOTERO_PREF_n` document properties), so a
+  paper stays live for co-authors who use Zotero. Searching and formatting
+  are the host's: the add-in posts its requests to the host page at the
+  origin given as the plugin option `hearthOrigin`, and shows no tab
+  without it.
 
 Planned:
 
-- References: a reference manager in its own toolbar tab, with a PubMed
-  search, citations stored as Word fields so the file stays a normal .docx,
-  and bibliographies in CSL styles.
 - Dictate: voice typing. Words are inserted at the cursor as they are
   recognised; the audio goes to the Hearth server, never to the browser's
   built-in recogniser.
@@ -137,8 +145,9 @@ The settings are upstream's; see `build/README.md`.
 
 ## What the fork changes
 
-Every difference from upstream, so each can be carried across merges or
-dropped.
+Every difference from upstream, so each can be carried across merges, or
+dropped if upstream changes the same thing. Nothing is sent upstream: the
+fixes are kept in this fork.
 
 | Where | Change | Why |
 | --- | --- | --- |
@@ -149,15 +158,18 @@ dropped.
 | hearth-office: `.gitmodules`, `.dockerignore` | The plugins repository is a submodule at `plugins`, left out of the main build context | The image layer needs it pinned like every other component |
 | core: `.github/workflows/hearth-core.yml` (new file) | Builds and publishes core | Builds on hosted runners |
 | sdkjs, web-apps, server: `.github/workflows/hearth-build.yml` (new file) | Build check | The same |
-| web-apps: `apps/api/wopi/editor-wopi.ejs` | The host's `customization.uiTheme` is kept; `thm=1`/`thm=2` are applied after the merge and only when present | A host could not make its own theme the default: the page overwrote it with undefined. A plain bug, fit to offer upstream |
-| web-apps: `apps/common/main/lib/controller/Themes.js` | A theme from `themes.json` that the editor starts with is applied in full | It was given its name but not its colours, which were written only when it was picked from the menu. Fit to offer upstream |
-| web-apps: the same file | `App_LoadingStatus` says `Frame_Ready` at onAppReady and `Document_Loaded` at onDocumentReady | `Document_Loaded` was sent when the shell was up, seconds before the document was drawn. Fit to offer upstream |
-| server: `DocService/sources/wopiClient.js` | The "opened in view mode" warning is raised only when the edit action was asked for and refused (the file's rights, or a lock), not when the host opens a file through the view action | Every reader of a read-only share or link was shown a warning about something the host had chosen. Fit to offer upstream |
+| web-apps: `apps/api/wopi/editor-wopi.ejs` | The host's `customization.uiTheme` is kept; `thm=1`/`thm=2` are applied after the merge and only when present | A host could not make its own theme the default: the page overwrote it with undefined. A plain bug in upstream's page |
+| web-apps: `apps/common/main/lib/controller/Themes.js` | A theme from `themes.json` that the editor starts with is applied in full | It was given its name but not its colours, which were written only when it was picked from the menu |
+| web-apps: the same file | `App_LoadingStatus` says `Frame_Ready` at onAppReady and `Document_Loaded` at onDocumentReady | `Document_Loaded` was sent when the shell was up, seconds before the document was drawn |
+| server: `DocService/sources/wopiClient.js` | The "opened in view mode" warning is raised only when the edit action was asked for and refused (the file's rights, or a lock), not when the host opens a file through the view action | Every reader of a read-only share or link was shown a warning about something the host had chosen |
 | plugins: `sdkjs-plugins/content/hearth-ai` (new folder) | Hearth Assistant | The add-in above |
+| plugins: `sdkjs-plugins/content/hearth-references` (new folder) | References | The add-in above |
+| sdkjs: `word/Editor/Paragraph/ComplexFields/AddinData.js`, `word/Editor/Document.js`, `word/api_plugins.js` | An add-in field's result can be given as formatted paragraphs (`AddinFieldData.Paragraphs`: runs with bold, italic, underline, small capitals, superscript; paragraph indents), read by `AddAddinField` and `UpdateAddinFields`; a plain update keeps the result's text properties | An update dropped a citation's superscript and italics, and a bibliography of several paragraphs pasted into a field lost the field's end mark |
+| sdkjs: `word/Editor/Document.js`, `word/Editor/Paragraph/ComplexField.js` | A field's instruction is written in runs of at most 255 characters, also after it is changed | As Word writes it: a citation's instruction holds its whole JSON, often several KB, in one run otherwise |
 
 No plugin page of upstream's is edited: the SDK address is rewritten on the
-copies that go into the image. core and sdkjs carry no source change; server
-carries the one above.
+copies that go into the image. core carries no source change; sdkjs and
+server carry the ones above.
 
 ## Licence
 

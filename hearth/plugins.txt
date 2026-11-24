@@ -3,3 +3,4 @@
 # (sdkjs-plugins/v1) always goes in beside them. Nothing else is shipped:
 # a plugin not named here is not in the image.
 hearth-ai
+hearth-references

@@ -43,6 +43,15 @@ with Hearth's line of work on its `hearth` branch.
   plainly.
 - README.md is kept up to date in the same commit as every change: what the
   fork is, how it is built, how to run it, the add-ins and the current state.
+- Every merge updates three documents in the same commit as the change:
+  README.md (above; every change to an upstream file in "What the fork
+  changes"), these rules (any new rule or workflow a later worker must
+  know) and the plan with its order of work (what is done marked done,
+  new decisions added; state and decisions only, never what the plan asks
+  for). A merge that leaves any of the three stale is not finished.
+- README voice: plain, for public readers, no build story, no bold on
+  names.
+- Commits here follow upstream's form, `type(hearth): what changed`.
 - Nothing private in this repository outside private/ (notes about one
   installation, test records, screenshots of anyone's documents). private/
   is left out of the public copy by hearth/export-public.sh; the component
