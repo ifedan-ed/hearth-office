@@ -19,8 +19,8 @@ As of 2026-11-24:
 
 - The fork holds upstream's code at the commits between release v9.3.8 and
   upstream's main of 2026-11-23, with the changes listed under "What the
-  fork changes": two fixes to the WOPI page, Hearth's AI add-in, and a
-  plugin SDK served by the server itself.
+  fork changes": two fixes to the WOPI page and one to theme loading,
+  Hearth's AI add-in, and a plugin SDK served by the server itself.
 - GitHub Actions builds all of it: the core (1 h 19 min for the native code,
   8 minutes for the WebAssembly modules), sdkjs, web-apps, the server and
   the image, published as `ghcr.io/ifedan-ed/hearth-office:<tag>`.
@@ -68,8 +68,10 @@ Two things differ from upstream:
   theme's JSON file in the themes folder
   (`web-apps/apps/common/main/resources/themes`) and send its id as
   `editorConfig.customization.uiTheme` in the `docs_api_config` form field.
-  Upstream's page discarded that value. The address parameters `thm=1` and
-  `thm=2` still pick the stock light and dark themes.
+  Upstream's page discarded that value, and the editor did not load such a
+  theme's colours at start. A theme a person picks in View, Interface theme
+  is remembered by their browser and comes first. The address parameters
+  `thm=1` and `thm=2` still pick the stock light and dark themes.
 - Loading. `App_LoadingStatus` is posted twice: with `Status: "Frame_Ready"`
   when the editor's shell is up, and with `Status: "Document_Loaded"` and
   `DocumentLoadedTime` when the document is drawn. Upstream posted
@@ -148,6 +150,7 @@ dropped.
 | core: `.github/workflows/hearth-core.yml` (new file) | Builds and publishes core | Builds on hosted runners |
 | sdkjs, web-apps, server: `.github/workflows/hearth-build.yml` (new file) | Build check | The same |
 | web-apps: `apps/api/wopi/editor-wopi.ejs` | The host's `customization.uiTheme` is kept; `thm=1`/`thm=2` are applied after the merge and only when present | A host could not make its own theme the default: the page overwrote it with undefined. A plain bug, fit to offer upstream |
+| web-apps: `apps/common/main/lib/controller/Themes.js` | A theme from `themes.json` that the editor starts with is applied in full | It was given its name but not its colours, which were written only when it was picked from the menu. Fit to offer upstream |
 | web-apps: the same file | `App_LoadingStatus` says `Frame_Ready` at onAppReady and `Document_Loaded` at onDocumentReady | `Document_Loaded` was sent when the shell was up, seconds before the document was drawn. Fit to offer upstream |
 | plugins: `sdkjs-plugins/content/hearth-ai` (new folder) | Hearth Assistant | The add-in above |
 
