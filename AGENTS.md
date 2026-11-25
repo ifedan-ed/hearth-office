@@ -5,6 +5,25 @@ guidance for this repository follows below, unchanged, under "Upstream
 guidance (Euro-Office)"; where the two disagree, the Hearth rules win, except
 that upstream's licence and attribution rules always hold.
 
+## No assistant or model names (Daniel, 2026-11-25)
+
+Nothing in this repository names an AI assistant, its maker or a model:
+not commit messages, code, comments, docs, test data, pull request text
+or this file.
+
+- Commit messages end with the message. No co-author trailer for an
+  assistant, no session line, no "generated with" footer.
+- The author and committer are the configured git identity (Daniel).
+- Where a rule depends on which model a helper runs on, write "the
+  designated model"; whoever starts the helper is told which one, and it
+  is not written down here.
+- History already pushed stays as it is: nothing is rewritten or forced
+  to remove old lines.
+- This holds for this fork's own commits. Upstream's guidance below asks
+  for an `Assisted-by:` trailer naming agent and model: that is for
+  contributions sent upstream, and none is sent from here without Daniel
+  saying so.
+
 ## What this is
 
 Hearth Office is the office suite of Hearth, a self-hosted cloud platform. It

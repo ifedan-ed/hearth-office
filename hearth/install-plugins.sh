@@ -2,7 +2,7 @@
 # SPDX-FileCopyrightText: 2026 Hearth contributors
 # SPDX-License-Identifier: AGPL-3.0-only
 #
-# install-plugins.sh SOURCE LIST DEST
+# install-plugins.sh SOURCE LIST DEST [BUILT]
 #
 # Copies the plugin SDK and the plugins named in LIST from a checkout of the
 # plugins repository (SOURCE is its sdkjs-plugins folder) into the Document
@@ -15,15 +15,19 @@
 # that fits the page's depth. This is done here, on the copies, so no plugin
 # file in the repository has to be edited to be shipped.
 #
+# BUILT, when given, holds files built in the image build for a plugin
+# (BUILT/<name>/...): they are copied over that plugin's own (the Zotero
+# plugin's dist/, built from its src/).
+#
 # The script fails if a copied page still loads a script or a stylesheet
 # from another site: a plugin that needs one is not fit to ship as it is.
 set -euo pipefail
 
-if [ "$#" -ne 3 ]; then
-    echo "usage: install-plugins.sh SOURCE LIST DEST" >&2
+if [ "$#" -lt 3 ] || [ "$#" -gt 4 ]; then
+    echo "usage: install-plugins.sh SOURCE LIST DEST [BUILT]" >&2
     exit 2
 fi
-source_dir="$1"; list="$2"; dest="$3"
+source_dir="$1"; list="$2"; dest="$3"; built_dir="${4:-}"
 outside_sdk='https://onlyoffice.github.io/sdkjs-plugins/v1/'
 
 # The SDK: the three files pages load, and its third-party notices.
@@ -43,6 +47,10 @@ grep -v -e '^[[:space:]]*#' -e '^[[:space:]]*$' "$list" | while read -r name; do
     mkdir -p "$dest/$name"
     # Dot-folders hold a plugin's own build sources (.dev) and are not served.
     (cd "$from" && find . -mindepth 1 -maxdepth 1 ! -name '.*' -exec cp -R {} "$dest/$name/" \;)
+    # Files built in the image build replace the plugin's own copies.
+    if [ -n "$built_dir" ] && [ -d "$built_dir/$name" ]; then
+        cp -R "$built_dir/$name/." "$dest/$name/"
+    fi
 
     # Point each page at the local SDK: "../v1/" from the plugin's top
     # folder, one more "../" for every folder below it.

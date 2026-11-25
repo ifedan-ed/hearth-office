@@ -4,3 +4,4 @@
 # a plugin not named here is not in the image.
 hearth-ai
 hearth-references
+zotero
