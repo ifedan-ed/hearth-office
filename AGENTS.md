@@ -75,7 +75,27 @@ with Hearth's line of work on its `hearth` branch.
   installation, test records, screenshots of anyone's documents). private/
   is left out of the public copy by hearth/export-public.sh; the component
   repositories have no private folder, so nothing private goes there at all.
+- The image ships only the plugins hearth/plugins.txt names. Hearth's
+  add-ins load their shared pieces (the message line to Hearth's page,
+  the theme helper, the panels' base styles) from content/hearth-shared,
+  a folder with a .shared file instead of config.json; never a copy in an
+  add-in. Data a plugin needs that is made from another repository (the
+  Thesaurus' packs from dictionaries, Zotero's dist/) is built in a stage
+  of hearth/Dockerfile, never committed.
+- An add-in changes the document only when the person presses one of its
+  buttons; the AI Tools' insert and replacement are tracked changes by
+  default.
 - Never open issues or pull requests on upstream's repositories on your own.
+- Files the engine's start writes again (api.js, AllFonts.js,
+  sdkjs/common/Images, the presentation themes, the x2t caches) get no
+  brotli copy (hearth/precompress.sh): a copy made at build would go
+  stale. A new file the start writes joins that list, and, if browsers
+  fetch it, the inputs of hearth/cache-tag.sh, so the editor's versioned
+  addresses still change when it does.
+- The prime page (hearth/prime) lists what an open fetches; when an
+  upstream merge renames the editor's files, the proof in
+  private/docs/changes.md, 9 shows it (a primed open asks the network for
+  more than a later open does) and the list is brought up to date.
 
 # Upstream guidance (Euro-Office)
 

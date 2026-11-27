@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<!--
+SPDX-FileCopyrightText: 2026 Hearth contributors
+SPDX-License-Identifier: AGPL-3.0-only
+
+The editor, prepared in the background. A host frames this page, hidden,
+before anyone opens a document (Hearth does it from its file list); the
+script beside it lets the editor's own service worker fetch the editor's
+code and base fonts, so the first open is as fast as a later one. It shows
+nothing and runs nothing of the editor. hearth-prime.js says how.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Editor</title>
+</head>
+<body>
+<script src="hearth-prime.js"></script>
+</body>
+</html>

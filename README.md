@@ -15,13 +15,14 @@ component as a submodule and builds the Document Server image.
 
 ## Current state
 
-As of 2026-11-24:
+As of 2026-11-27 (the add-ins of that date wait for the next image):
 
 - The fork holds upstream's code at the commits between release v9.3.8 and
   upstream's main of 2026-11-23, with the changes listed under "What the
   fork changes": two fixes to the WOPI page and one to theme loading,
-  one to the server's view-mode warning, Hearth's AI add-in, and a plugin
-  SDK served by the server itself.
+  one to the server's view-mode warning, two to add-in fields in sdkjs,
+  Hearth's add-ins (AI Tools, Citations, Thesaurus, Spelling and grammar,
+  Speech input), and a plugin SDK served by the server itself.
 - GitHub Actions builds all of it: the core (1 h 19 min for the native code,
   8 minutes for the WebAssembly modules), sdkjs, web-apps, the server and
   the image, published as `ghcr.io/ifedan-ed/hearth-office:<tag>`.
@@ -39,17 +40,27 @@ which).
 
 Built:
 
-- Hearth Assistant (`hearth-ai`): an Assistant tab and side panel in the
-  document, spreadsheet and presentation editors. It drafts text that fits
-  what is around the cursor, rewrites a selection as a tracked change,
-  summarises a selection or the whole file, explains the formula in a cell
-  from the cells it uses, turns notes into slides on the deck's own layout,
-  and answers questions about the open document. Every request goes through
-  the server's own proxy (`/ai-proxy`) to the provider in the server's
-  settings; the browser holds no key. The model is one setting,
-  `aiSettings.actions.Chat.model`. It is started with
-  `services.CoAuthoring.plugins.autostart` (the plugin's README has the
-  line). A host turns it off with the plugin option `off`.
+- AI Tools (`hearth-ai`): an AI Tools tab and side panel in the
+  document, spreadsheet and presentation editors: a chat beside the
+  document, and quick actions (summarise, rewrite, simplify, expand,
+  proofread, translate, suggest a title, key points, contents, draft,
+  explain a formula, notes to slides), with a model picker. Every answer
+  is shown first and goes into the document only when accepted, in a
+  text document as a tracked change. Its requests go to the host page
+  (option `hearthOrigin`), which answers through its own model proxy; the
+  browser holds no key. Only the tab loads with the document; the rest on
+  the first click.
+- Thesaurus (`hearth-thesaurus`): synonyms from the Collaboration tab and
+  the right-click menu, from the OpenOffice and LibreOffice thesauruses
+  in the image (`hearth/thesaurus.txt` lists the data packs; English
+  first). Offline.
+- Spelling and grammar (`hearth-proofing`): a Collaboration tab button and
+  a side panel listing what the host's LanguageTool server finds, each
+  fix put in at its place; asked through the host page.
+- Speech input (`hearth-speech`): a Home tab button; the host page records
+  and recognises, the add-in types the words at the cursor.
+- `hearth-shared`: not a plugin, the message line to the host page, the
+  theme helper and the panels' base styles the add-ins share.
 - References (`hearth-references`): a References tab in the document
   editor that cites from the host's reference library and PubMed, keeps
   the bibliography in the document's citation style (Edit citation,
@@ -61,16 +72,18 @@ Built:
   origin given as the plugin option `hearthOrigin`, and shows no tab
   without it.
 
+Upstream's, shipped: the Zotero tab (changes.md, change 8) and the Photo
+Editor (crop, rotate and adjust a picture in the document, in the browser;
+its usage report to Google Analytics switched off). None of
+upstream's other plugins is in the image.
+
 Planned:
 
-- Dictate: voice typing. Words are inserted at the cursor as they are
-  recognised; the audio goes to the Hearth server, never to the browser's
-  built-in recogniser.
 - Hearth's name and mark on the editor's loading screen and About box.
 
 ## For a WOPI host
 
-Two things differ from upstream:
+Three things differ from upstream:
 
 - Theme. A host can make a colour theme of its own the default: put the
   theme's JSON file in the themes folder
@@ -84,6 +97,14 @@ Two things differ from upstream:
   when the editor's shell is up, and with `Status: "Document_Loaded"` and
   `DocumentLoadedTime` when the document is drawn. Upstream posted
   `Document_Loaded` at the first moment.
+- Preparing the editor. A host can frame
+  `/web-apps/apps/api/documents/hearth-prime.html?kinds=word,cell,slide&ui=main&lang=en&host=<its origin>`
+  hidden (`ui=mobile` for the phone editor), before anyone opens a
+  document. The page lets the editor's service worker fetch the editor for
+  those kinds, pauses while the tab is hidden, and posts
+  `{"hearthPrime":"done","version":...,"cached":n,"fetched":n,"failed":n}`
+  (as a JSON string) to `host` when it is finished. Deciding whether to
+  prime at all (the person's connection, data saver) is the host's job.
 
 ## Repositories
 
@@ -162,7 +183,15 @@ fixes are kept in this fork.
 | web-apps: `apps/common/main/lib/controller/Themes.js` | A theme from `themes.json` that the editor starts with is applied in full | It was given its name but not its colours, which were written only when it was picked from the menu |
 | web-apps: the same file | `App_LoadingStatus` says `Frame_Ready` at onAppReady and `Document_Loaded` at onDocumentReady | `Document_Loaded` was sent when the shell was up, seconds before the document was drawn |
 | server: `DocService/sources/wopiClient.js` | The "opened in view mode" warning is raised only when the edit action was asked for and refused (the file's rights, or a lock), not when the host opens a file through the view action | Every reader of a read-only share or link was shown a warning about something the host had chosen |
-| plugins: `sdkjs-plugins/content/hearth-ai` (new folder) | Hearth Assistant | The add-in above |
+| hearth-office: `hearth/prime/` (new folder), `hearth/Dockerfile` | `hearth-prime.html` and its script, installed beside `api.js`: a host frames the page hidden, and the editor's own service worker fetches the editor's code and base fonts for the kinds named, plus what this browser used under the previous version | The first open of a document downloaded the whole editor (about 23 MB) before showing it; primed, it is as fast as a later open |
+| hearth-office: `hearth/precompress.sh`, `hearth/hearth-nginx.conf`, `hearth/Dockerfile` | Brotli copies (quality 11) of the static files, served by nginx's `brotli_static` (Ubuntu's module for the image's nginx) | The editor's scripts and font engine a third smaller than compressed on the fly |
+| hearth-office: `hearth/cache-tag.sh`, `hearth/Dockerfile` (edits the installed `documentserver-flush-cache.sh`) | The tag in the editor's versioned addresses is a hash of what is served (the image's static files, the generated font list, the themes), not of the minute the engine started | Every restart moved every address, so every browser's cached editor was thrown away |
+| hearth-office: `hearth/Dockerfile` (edits the installed `nginx.conf`) | `worker_rlimit_nofile 65536` and `NGINX_WORKER_CONNECTIONS=8192` | 768 connections per worker refused editors past about 380 |
+| hearth-office: `hearth/install-plugins.sh` | An add-in without translations gets `translations/langs.json` with `[]` | The plugin SDK asked for two missing files per add-in on every open |
+| plugins: `sdkjs-plugins/content/hearth-ai` (new folder) | AI Tools | The add-in above |
+| plugins: `sdkjs-plugins/content/photoeditor/index.html`, `scripts/hearth-no-usage-report.js` (new file) | The TOAST UI libraries' usage report switched off globally | Its colour picker reported each use to Google Analytics |
+| plugins: `sdkjs-plugins/content/hearth-thesaurus`, `hearth-proofing`, `hearth-speech`, `hearth-shared` (new folders) | Thesaurus, Spelling and grammar, Speech input, their shared scripts | The add-ins above |
+| hearth-office: `hearth/thesaurus.txt` (new file), `hearth/Dockerfile`, `hearth/docker-bake.hcl` | The Thesaurus' data packs built in the image from the dictionaries repository | Offline synonyms |
 | plugins: `sdkjs-plugins/content/hearth-references` (new folder) | References | The add-in above |
 | sdkjs: `word/Editor/Paragraph/ComplexFields/AddinData.js`, `word/Editor/Document.js`, `word/api_plugins.js` | An add-in field's result can be given as formatted paragraphs (`AddinFieldData.Paragraphs`: runs with bold, italic, underline, small capitals, superscript; paragraph indents), read by `AddAddinField` and `UpdateAddinFields`; a plain update keeps the result's text properties | An update dropped a citation's superscript and italics, and a bibliography of several paragraphs pasted into a field lost the field's end mark |
 | sdkjs: `word/Editor/Document.js`, `word/Editor/Paragraph/ComplexField.js` | A field's instruction is written in runs of at most 255 characters, also after it is changed | As Word writes it: a citation's instruction holds its whole JSON, often several KB, in one run otherwise |

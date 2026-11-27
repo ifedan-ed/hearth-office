@@ -1,0 +1,5 @@
+# The Thesaurus add-in's data packs, one per line: code|name|file, the file
+# in the dictionaries repository (MyThes format). English first; another
+# language is one more line here (the dictionaries repository holds
+# thesauruses for more languages, each with its own licence beside it).
+en_US|English (US)|en_US/en_US_thes.dat

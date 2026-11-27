@@ -19,6 +19,11 @@
 # (BUILT/<name>/...): they are copied over that plugin's own (the Zotero
 # plugin's dist/, built from its src/).
 #
+# A listed folder with a .shared file instead of config.json is not a
+# plugin but scripts and styles the plugins load from ../NAME/ (Hearth's
+# add-ins share hearth-shared): copied the same way, never listed by the
+# server as a plugin.
+#
 # The script fails if a copied page still loads a script or a stylesheet
 # from another site: a plugin that needs one is not fit to ship as it is.
 set -euo pipefail
@@ -39,8 +44,8 @@ done
 # Names from the list: blank lines and # comments are skipped.
 grep -v -e '^[[:space:]]*#' -e '^[[:space:]]*$' "$list" | while read -r name; do
     from="$source_dir/content/$name"
-    if [ ! -f "$from/config.json" ]; then
-        echo "plugin $name: $from/config.json not found" >&2
+    if [ ! -f "$from/config.json" ] && [ ! -f "$from/.shared" ]; then
+        echo "plugin $name: neither $from/config.json nor $from/.shared found" >&2
         exit 1
     fi
     rm -rf "${dest:?}/$name"
@@ -62,6 +67,16 @@ grep -v -e '^[[:space:]]*#' -e '^[[:space:]]*$' "$list" | while read -r name; do
         for _ in $(seq "$depth"); do up="../$up"; done
         sed -i "s#${outside_sdk}#${up}v1/#g" "$page"
     done
+
+    # A plugin with no translations says so: the plugin SDK
+    # (sdkjs/common/plugins/plugin_base.js) asks for translations/langs.json
+    # in any language but English, and on a 404 asks for that language's
+    # file too, so each such add-in cost two failed requests on every open.
+    # An empty list is the SDK's own "none" (it then translates nothing).
+    if [ ! -e "$dest/$name/translations" ]; then
+        mkdir -p "$dest/$name/translations"
+        printf '[]\n' > "$dest/$name/translations/langs.json"
+    fi
 
     # Anything a page would still fetch from another site.
     if grep -rnE --include='*.html' '<(script|link)[^>]+(src|href)="(https?:)?//' "$dest/$name"; then

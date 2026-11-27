@@ -15,5 +15,8 @@ target "hearth" {
   contexts = {
     base    = "target:standalone"
     plugins = "../plugins/sdkjs-plugins"
+    # The OpenOffice/LibreOffice thesauruses the Thesaurus add-in's data
+    # packs are built from (hearth/thesaurus.txt).
+    dictionaries = "../dictionaries"
   }
 }

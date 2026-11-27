@@ -1,7 +1,28 @@
 # The plugins built into the Hearth Office image, one folder name per line,
 # from sdkjs-plugins/content in the plugins repository. The plugin SDK
 # (sdkjs-plugins/v1) always goes in beside them. Nothing else is shipped:
-# a plugin not named here is not in the image.
+# a plugin not named here is not in the image, so none of upstream's
+# others (Jitsi, Typograf, Doc2md, DeepL, OCR, its AI plugin, its
+# Thesaurus and LanguageTool plugins, which call outside services) is in
+# the editor's Plugins tab.
+#
+# hearth-shared is not a plugin: the bridge, theme and panel styles the
+# Hearth add-ins load.
+hearth-shared
 hearth-ai
 hearth-references
+hearth-thesaurus
+hearth-proofing
+hearth-speech
 zotero
+# Upstream's, unchanged: crops, rotates and adjusts a picture in the
+# document, all in the browser (TOAST UI Image Editor, its usage report
+# off), nothing sent out (private/docs/changes.md, change 10).
+photoeditor
+# Upstream's, unchanged (Daniel, 2026-11-27): code highlighted in the
+# document, a calendar to put dates in cells, QR codes. All three work in
+# the browser and call nothing outside (checked in Hearth's
+# office-ai.spec.ts request log).
+highlightcode
+datepicker
+insertQR
