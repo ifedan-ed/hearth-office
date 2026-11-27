@@ -81,3 +81,16 @@ RUN --mount=type=bind,target=/src/hearth \
     && sed -i 's/^worker_processes.*/&\nworker_rlimit_nofile 65536;/' /etc/nginx/nginx.conf \
     && nginx -t
 ENV NGINX_WORKER_CONNECTIONS=8192
+
+# Caladea, Cambria's metric twin, at the version LibreOffice and Hearth's
+# presentations measure in (fonts-crosextra-caladea 20200211, SIL OFL
+# 1.1, its licence beside it). Upstream's core-fonts carries the 2015
+# release, whose letters are 5.6 % wider: a Cambria heading Hearth sized to
+# its box wrapped onto one more line here and ran out of it. The engine
+# makes its font lists from core-fonts when it starts, so replacing the
+# files is all it takes.
+COPY fonts/caladea/ /tmp/caladea/
+RUN rm -f "$DS_ROOT"/core-fonts/caladea/*.ttf \
+    && install -m 0444 /tmp/caladea/*.ttf /tmp/caladea/OFL.txt /tmp/caladea/COPYRIGHT "$DS_ROOT/core-fonts/caladea/" \
+    && rm -rf /tmp/caladea
+

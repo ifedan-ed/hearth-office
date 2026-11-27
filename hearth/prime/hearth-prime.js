@@ -85,6 +85,10 @@
       'sdkjs/common/libfont/engine/fonts.js',
       'sdkjs/common/libfont/engine/fonts.wasm',
       'sdkjs/common/Charts/ChartStyles.js',
+      // The spelling checker the editor starts as it opens (its own
+      // engine; the dictionaries load by language later).
+      'sdkjs/common/spell/spell/spell.js',
+      'sdkjs/common/spell/spell/spell.wasm',
       'sdkjs/common/Images/cursors/svg.json',
       'web-apps/vendor/jquery/jquery.min.js',
       'web-apps/vendor/socketio/socket.io.min.js',

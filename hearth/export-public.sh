@@ -23,8 +23,8 @@
 # Usage: hearth/export-public.sh            make a snapshot if main changed
 #        hearth/export-public.sh --check    print what the snapshot would
 #                                           leave out and stop
-# It never pushes. Push refs/heads/public to the public remote's main after
-# the scan:  git push github public:main
+# It never pushes. Push refs/heads/public to the public remote's hearth
+# branch after the scan:  git push github public:hearth
 set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel)"
