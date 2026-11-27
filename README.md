@@ -195,6 +195,7 @@ fixes are kept in this fork.
 | plugins: `sdkjs-plugins/content/hearth-references` (new folder) | References | The add-in above |
 | sdkjs: `word/Editor/Paragraph/ComplexFields/AddinData.js`, `word/Editor/Document.js`, `word/api_plugins.js` | An add-in field's result can be given as formatted paragraphs (`AddinFieldData.Paragraphs`: runs with bold, italic, underline, small capitals, superscript; paragraph indents), read by `AddAddinField` and `UpdateAddinFields`; a plain update keeps the result's text properties | An update dropped a citation's superscript and italics, and a bibliography of several paragraphs pasted into a field lost the field's end mark |
 | sdkjs: `word/Editor/Document.js`, `word/Editor/Paragraph/ComplexField.js` | A field's instruction is written in runs of at most 255 characters, also after it is changed | As Word writes it: a citation's instruction holds its whole JSON, often several KB, in one run otherwise |
+| sdkjs: `common/text_input2.js` | The editors' hidden text input is 16px on iOS Safari | Safari zooms the page when a field under 16px takes focus; an editor in a host's frame is under the host's viewport, which keeps pinch zoom, so the page zoomed as typing began |
 
 No plugin page of upstream's is edited: the SDK address is rewritten on the
 copies that go into the image. core carries no source change; sdkjs and
