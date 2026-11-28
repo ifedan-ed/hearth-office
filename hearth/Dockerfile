@@ -12,7 +12,8 @@
 #   dictionaries  the dictionaries repository (the thesauruses)
 # The default context is this folder (the lists, the install script, and
 # the files for serving the editor faster: prime/, cache-tag.sh,
-# precompress.sh, hearth-nginx.conf).
+# precompress.sh, hearth-nginx.conf, cacheable-api-js.sh,
+# hearth-api-js.conf).
 
 # The Zotero plugin's pages load dist/ built from its src/ by vite. It is
 # built here, in the image build on GitHub, never on a server; the stage
@@ -60,7 +61,10 @@ RUN --mount=type=bind,from=plugins,target=/src/sdkjs-plugins \
 # - nginx's connection ceiling: 768 per worker was about 380 editors (each
 #   holds two connections); 8192 per worker, with the file limit to match.
 #   The worker count is the host's setting (NGINX_WORKER_PROCESSES, read by
-#   the entrypoint), one per processor it gives the engine.
+#   the entrypoint), one per processor it gives the engine;
+# - api.js cacheable on a later open: the WOPI page loads it from its
+#   versioned address, which nginx serves for good under the current tag
+#   only (cacheable-api-js.sh, hearth-api-js.conf).
 COPY prime/hearth-prime.html prime/hearth-prime.js $DS_ROOT/web-apps/apps/api/documents/
 COPY cache-tag.sh /usr/local/bin/hearth-cache-tag
 COPY hearth-nginx.conf /etc/nginx/conf.d/hearth-nginx.conf
@@ -79,6 +83,7 @@ RUN --mount=type=bind,target=/src/hearth \
     && hearth-cache-tag | grep -qE '^[0-9a-f]{32}$' \
     && grep -q '^worker_processes' /etc/nginx/nginx.conf \
     && sed -i 's/^worker_processes.*/&\nworker_rlimit_nofile 65536;/' /etc/nginx/nginx.conf \
+    && bash /src/hearth/cacheable-api-js.sh "$DS_ROOT" /src/hearth/hearth-api-js.conf \
     && nginx -t
 ENV NGINX_WORKER_CONNECTIONS=8192
 

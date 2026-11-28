@@ -92,6 +92,14 @@ with Hearth's line of work on its `hearth` branch.
   stale. A new file the start writes joins that list, and, if browsers
   fetch it, the inputs of hearth/cache-tag.sh, so the editor's versioned
   addresses still change when it does.
+- api.js under its versioned address is cached by browsers for a year
+  (hearth/hearth-api-js.conf), so its content must be fixed by the tag:
+  whatever the start writes into api.js has to be an input of
+  hearth/cache-tag.sh (today only the tag itself and the template, which
+  the static files' hash covers). hearth/cacheable-api-js.sh holds
+  upstream's WOPI script line and api.js location exactly and stops the
+  build when an upstream merge changes them; carry the edit across by
+  hand then, never by loosening the check.
 - The prime page (hearth/prime) lists what an open fetches; when an
   upstream merge renames the editor's files, the proof in
   private/docs/changes.md, 9 shows it (a primed open asks the network for
