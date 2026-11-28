@@ -83,7 +83,7 @@ Planned:
 
 ## For a WOPI host
 
-Three things differ from upstream:
+Four things differ from upstream:
 
 - Theme. A host can make a colour theme of its own the default: put the
   theme's JSON file in the themes folder
@@ -105,6 +105,16 @@ Three things differ from upstream:
   `{"hearthPrime":"done","version":...,"cached":n,"fetched":n,"failed":n}`
   (as a JSON string) to `host` when it is finished. Deciding whether to
   prime at all (the person's connection, data saver) is the host's job.
+- Converting ahead. A host can `POST /hearth/prepare` (JSON `wopisrc`,
+  `access_token`, `access_token_ttl`, signed as a ConvertService request
+  is) when a document is uploaded or changed. The server converts it for
+  the editor at low priority, as the first open would, and the next open
+  of that version starts without waiting for the converter. The answer is
+  `{"result":..., "ms":...}`: `prepared`, `kept` (already converted for
+  this version), `busy` (open now, or a save pending: nothing done),
+  `queued` (still converting after 90 s), `skipped` (not a document,
+  workbook or presentation, or empty) or `failed`. If the file changes
+  before it is opened, the open converts the new version as usual.
 
 ## Repositories
 
@@ -183,6 +193,7 @@ fixes are kept in this fork.
 | web-apps: `apps/common/main/lib/controller/Themes.js` | A theme from `themes.json` that the editor starts with is applied in full | It was given its name but not its colours, which were written only when it was picked from the menu |
 | web-apps: the same file | `App_LoadingStatus` says `Frame_Ready` at onAppReady and `Document_Loaded` at onDocumentReady | `Document_Loaded` was sent when the shell was up, seconds before the document was drawn |
 | web-apps: `apps/common/mobile/utils/keysAfterModals.js` (new file), the document, spreadsheet and presentation editors' `mobile/src/controller/Main.jsx` | The phone editors turn key events back on when the last sheet, popover, popup or dialog closes | They were turned off when one opened and never on again: after the formatting sheet, the caret came back but every key was dropped |
+| server: `DocService/sources/hearthPrepare.js` (new file), `server.js` (the route), `wopiClient.js` and `DocsCoServer.js` (exports) | `POST /hearth/prepare` converts a document for the editor ahead of its open, with upstream's own open steps (CheckFileInfo, the edit session's key, the cache check, the task row and an unlock marker, the open task at low priority) | The first open of each version of a file waited for the converter: 0.2 to 0.9 s on a busy server, more for big workbooks |
 | server: `DocService/sources/wopiClient.js` | The "opened in view mode" warning is raised only when the edit action was asked for and refused (the file's rights, or a lock), not when the host opens a file through the view action | Every reader of a read-only share or link was shown a warning about something the host had chosen |
 | hearth-office: `hearth/prime/` (new folder), `hearth/Dockerfile` | `hearth-prime.html` and its script, installed beside `api.js`: a host frames the page hidden, and the editor's own service worker fetches the editor's code and base fonts for the kinds named, plus what this browser used under the previous version | The first open of a document downloaded the whole editor (about 23 MB) before showing it; primed, it is as fast as a later open |
 | hearth-office: `hearth/precompress.sh`, `hearth/hearth-nginx.conf`, `hearth/Dockerfile` | Brotli copies (quality 11) of the static files, served by nginx's `brotli_static` (Ubuntu's module for the image's nginx) | The editor's scripts and font engine a third smaller than compressed on the fly |
